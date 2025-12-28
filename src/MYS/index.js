@@ -2,6 +2,10 @@ import axios from 'axios';
 import md5 from 'md5';
 import { v4 } from 'uuid';
 
+const TG_BOT_TOKEN = process.env.TG_BOT_TOKEN;
+const TG_BOT_CHATID = process.env.TG_BOT_CHATID;
+let TelegramBot = require('node-telegram-bot-api');
+let bot = new TelegramBot(TG_BOT_TOKEN, { polling: true });
 
 let ROLE = {
   Genshin: {
@@ -65,6 +69,7 @@ const getCookieConfig = async () => {
   const MYSCookies = process.env.MYS_COOKIES;
   if (!MYSCookies) {
     console.error("Missing required environment variables.");
+    bot.sendMessage(TG_BOT_CHATID, "Missing required environment variables: MYS_COOKIES.");
     return { Genshin: [], StarRail: [] }
   }
   const MYSCookieArr = MYSCookies ? MYSCookies.split(',') : []
@@ -98,13 +103,16 @@ const getRole = async (cookie, gameKey) => {
     url: `https://${WEB_HOST}/binding/api/getUserGameRolesByCookie?game_biz=${GAME_BIZ[gameKey]}`
   }).catch(err => {
     console.error('Login error\n' + err)
+    bot.sendMessage(TG_BOT_CHATID, `Login error for ${gameKey}:\n` + err);
   })
   if (res.data['retcode'] !== 0) {
     console.info('Account not logged in, please check cookie', JSON.stringify(res.data))
+    bot.sendMessage(TG_BOT_CHATID, `Account not logged in for ${gameKey}, please check cookie:\n` + JSON.stringify(res.data));
   }
   if ((res?.data?.message === 'OK') && res.data.data.list[0]) {
     ROLE[gameKey] = res.data.data.list[0]
     console.log(`[${gameKey}] Login successful <${ROLE[gameKey].nickname}(${ROLE[gameKey].game_uid})>: `, JSON.stringify(res.data))
+    bot.sendMessage(TG_BOT_CHATID, `[${gameKey}] Login successful <${ROLE[gameKey].nickname}(${ROLE[gameKey].game_uid})>`);
   } else {
     ROLE[gameKey] = {
       game_biz: '',
@@ -117,6 +125,7 @@ const getRole = async (cookie, gameKey) => {
       is_official: false
     }
     console.log(`[${gameKey}] Login failed <No character found>: `, JSON.stringify(res.data))
+    bot.sendMessage(TG_BOT_CHATID, `[${gameKey}] Login failed <No character found>:\n` + JSON.stringify(res.data));
   }
 }
 
@@ -139,15 +148,18 @@ async function Sign_In(cookie, gameKey) {
     url: `https://${WEB_HOST}/event/luna/${SIGNGAME[gameKey]}/sign`
   }).catch(err => {
     console.error('Sign-in error\n' + err)
+    bot.sendMessage(TG_BOT_CHATID, `Sign-in error for ${gameKey} <${ROLE[gameKey].nickname}(${ROLE[gameKey].game_uid})>:\n` + err);
   })
-  console.log(`<${ROLE[gameKey].nickname}(${ROLE[gameKey].game_uid})> Sign-in ${res?.data?.message === 'OK' ? 'successful' : 'failed'}: `, JSON.stringify(res.data))
-}
+    console.log(`<${ROLE[gameKey].nickname}(${ROLE[gameKey].game_uid})> Sign-in ${res?.data?.message === 'OK' ? 'successful' : 'failed'}: `, JSON.stringify(res.data))
+    bot.sendMessage(TG_BOT_CHATID, `<${ROLE[gameKey].nickname}(${ROLE[gameKey].game_uid})> Sign-in ${res?.data?.message === 'OK' ? 'successful' : 'failed'}:\n` + JSON.stringify(res.data));
+  }
 
 const doMYSSign = async (gameKey) => {
   const CONF = await getCookieConfig()
   const cookieList = CONF[gameKey]
   if (cookieList.length) {
     console.info(`[${gameKey}] Start signing in, total ${cookieList.length} users\n`)
+    bot.sendMessage(TG_BOT_CHATID, `[${gameKey}] Start signing in, total ${cookieList.length} users`);
     for (const cookIndex in cookieList) {
       const cook = cookieList[cookIndex]
       if (cook) {
@@ -160,6 +172,7 @@ const doMYSSign = async (gameKey) => {
       }
     }
     console.info(`[${gameKey}] Sign-in completed\n`)
+    bot.sendMessage(TG_BOT_CHATID, `[${gameKey}] Sign-in completed`);
   }
 }
 
