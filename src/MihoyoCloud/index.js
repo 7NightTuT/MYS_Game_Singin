@@ -1,9 +1,9 @@
 import axios from 'axios';
+import TelegramBot from 'node-telegram-bot-api';
 const $axios = axios.create({})
 
 const TG_BOT_TOKEN = process.env.TG_BOT_TOKEN;
 const TG_BOT_CHATID = process.env.TG_BOT_CHATID;
-let TelegramBot = require('node-telegram-bot-api');
 let bot = new TelegramBot(TG_BOT_TOKEN, { polling: true });
 
 const randomSleep = (min, max) => {
