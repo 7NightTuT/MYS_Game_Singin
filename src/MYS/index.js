@@ -163,6 +163,7 @@ const doMYSSign = async (gameKey) => {
       const cook = cookieList[cookIndex]
       if (cook) {
         console.log(`[${gameKey}] User ${Number(cookIndex) + 1} starts signing in...`)
+        bot.sendMessage(TG_BOT_CHATID, `[${gameKey}] User ${Number(cookIndex) + 1} starts signing in...`);
         await getRole(cook, gameKey)
         if (ROLE[gameKey]?.game_uid) {
           await Sign_In(cook, gameKey)
