@@ -1,5 +1,80 @@
 import axios from 'axios';
+import md5 from 'md5';
+import { v4 } from 'uuid';
+
+const TG_BOT_TOKEN = process.env.TG_BOT_TOKEN;
+const TG_BOT_CHATID = process.env.TG_BOT_CHATID;
+let TelegramBot = require('node-telegram-bot-api');
+let bot = new TelegramBot(TG_BOT_TOKEN, { polling: true });
+
+let ROLE = {
+  Genshin: {
+    game_biz: '',
+    region: '',
+    game_uid: '',
+    nickname: '',
+    level: -1,
+    is_chosen: false,
+    region_name: '',
+    is_official: false
+  },
+  StarRail: {
+    game_biz: '',
+    region: '',
+    game_uid: '',
+    nickname: '',
+    level: -1,
+    is_chosen: false,
+    region_name: '',
+    is_official: false
+  }
+}
+
+const WEB_HOST = 'api-takumi.mihoyo.com'
+const APP_VERSION = '2.81.1'
+
+const COMMON__HEADERS = {
+  "DS": '',
+  "Cookie": '',
+  "Host": WEB_HOST,
+  "User-Agent": `Mozilla/5.0 (iPhone; CPU iPhone OS 18_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) miHoYoBBS/${APP_VERSION}`,
+  "x-rpc-app_version": APP_VERSION,
+  "x-rpc-client_type": 5,
+  "Accept-Language": "zh-CN,zh-Hans;q=0.9",
+  "Accept": "application/json, text/plain, */*",
+}
+let ROLE_HEADERS = {
+  "Referer": 'https://webstatic.mihoyo.com/',
+  "x-rpc-device_id": v4(),
+  "Origin": "https://webstatic.mihoyo.com",
+  "x-rpc-challenge": 'null',
+  "Accept": "application/json, text/plain, */*",
+  "Accept-Encoding": "gzip, deflate, br",
+};
+let SIGN_HEADERS = {
+  "Referer": "https://act.mihoyo.com/",
+  "x-rpc-device_model": "iPhone14,4",
+  "x-rpc-device_id": v4(),
+  "x-rpc-platform": 1,
+  "x-rpc-device_name": "iPhone",
+  "Origin": "https://act.mihoyo.com",
+  "Sec-Fetch-Site": "same-site",
+  "Connection": "keep-alive",
+  "Content-Type": "application/json;charset=utf-8",
+}
+
 const $axios = axios.create({})
+
+const getCookieConfig = async () => {
+  const MYSCookies = process.env.MYS_COOKIES;
+  if (!MYSCookies) {
+    console.error("Missing required environment variables.");
+    bot.sendMessage(TG_BOT_CHATID, "Missing required environment variables: MYS_COOKIES.");
+    return { Genshin: [], StarRail: [] }
+  }
+  const MYSCookieArr = MYSCookies ? MYSCookies.split(',') : []
+  return { Genshin: MYSCookieArr, StarRail: MYSCookieArr }
+}
 
 const randomSleep = (min, max) => {
   const delay = Math.floor(Math.random() * (max - min + 1)) + min
@@ -7,137 +82,98 @@ const randomSleep = (min, max) => {
   return new Promise((resolve) => setTimeout(resolve, delay * 1000))
 }
 
-const getTokenConfig = async () => {
-  const genshinTokens = process.env.GENSHIN_TOKENS
-  const StarRailTokens = process.env.STARRAIL_TOKENS
-  if (!genshinTokens && !StarRailTokens) {
-    console.error("Missing required environment variables.");
-    return { CloudYS: [], CloudSR: [] }
-  }
-  const genshinTokenArr = genshinTokens ? genshinTokens.split(',') : []
-  const StarRailTokenArr = StarRailTokens ? StarRailTokens.split(',') : []
-  return { CloudYS: genshinTokenArr, CloudSR: StarRailTokenArr }
+async function getDS() {
+  const s = "yUZ3s0Sna1IrSNfk29Vo6vRapdOyqyhB";
+  const t = Math.floor(Date.now() / 1e3);
+  const r = Math.random().toString(36).slice(-6);
+  const c = `salt=${s}&t=${t}&r=${r}`;
+  return `${t},${r},${md5(c)}`;
 }
 
-const commonHeaders = {
-  Connection: "Keep-Alive",
-  "Accept-Encoding": "gzip, deflate, br, zstd",
-  "accept-language": "zh-CN,zh;q=0.9",
-  Accept: "application/json, text/plain, */*",
-  "sec-ch-ua": `"Chromium";v="140", "Not=A?Brand";v="24", "Google Chrome";v="140"`,
-  "sec-ch-ua-mobile": "?0",
-  "sec-ch-ua-platform": `"macOS"`,
-  "sec-fetch-dest": "empty",
-  "sec-fetch-mode": "cors",
-  "sec-fetch-site": "same-site",
-  "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36",
-  "x-rpc-channel": "mihoyo",
-  "x-rpc-client_type": 17,
-  "x-rpc-combo_token": "",
-  "x-rpc-cps": "mac_mihoyo",
-  "x-rpc-device_id": "1b252815-b2df-494f-8c84-a93e1a6d3479",
-  "x-rpc-device_model": "Macintosh",
-  "x-rpc-device_name": "Apple Macintosh",
-  "x-rpc-language": "zh-cn",
-  "x-rpc-sys_version": "Mac OS 10.15.7",
-  "x-rpc-vendor_id": 2,
-}
-const gameConfig = {
-  CloudYS: {
-    headers: {
-      Host: "api-cloudgame.mihoyo.com",
-      origin: "https://ys.mihoyo.com",
-      Referer: "https://ys.mihoyo.com/",
-      "x-rpc-app_id": 4,
-      "x-rpc-app_version": "6.0.0",
-      "x-rpc-cg_game_biz": "hk4e_cn",
-      "x-rpc-op_biz": "clgm_cn",
-    },
-    baseURL: "https://api-cloudgame.mihoyo.com/hk4e_cg_cn",
-  },
-  CloudSR: {
-    headers: {
-      Host: "cg-hkrpg-api.mihoyo.com",
-      origin: "https://sr.mihoyo.com",
-      Referer: "https://sr.mihoyo.com/",
-      "x-rpc-app_id": 8,
-      "x-rpc-app_version": "3.5.0",
-      "x-rpc-cg_game_biz": "hkrpg_cn",
-      "x-rpc-op_biz": "clgm_hkrpg-cn",
-    },
-    baseURL: "https://cg-hkrpg-api.mihoyo.com/hkrpg_cn/cg",
-  }
+const getHeaders = async (Cookie, whichHeader) => {
+  return { ...COMMON__HEADERS, ...whichHeader, Cookie, DS: await getDS() }
 }
 
-const getWallet = async (gameKey, token) => {
-  const config = gameConfig[gameKey]
+const getRole = async (cookie, gameKey) => {
+  const GAME_BIZ = { Genshin: 'hk4e_cn', StarRail: 'hkrpg_cn' }
+  const headers = await getHeaders(cookie, ROLE_HEADERS)
   const res = await $axios.request({
     method: 'GET',
-    headers: { ...commonHeaders, ...config.headers, "x-rpc-combo_token": token },
-    url: config.baseURL + '/wallet/wallet/get'
-  }).catch(err => { console.error(`[${gameKey}] Get wallet error\n` + err) })
-  if ((res?.data?.message === 'OK') && res.data.data.free_time) {
-    console.log(`[${gameKey}] Get wallet success! free time: ${res.data.data.free_time.free_time}, total_time: ${res.data.data.total_time}`)
+    headers,
+    url: `https://${WEB_HOST}/binding/api/getUserGameRolesByCookie?game_biz=${GAME_BIZ[gameKey]}`
+  }).catch(err => {
+    console.error('Login error\n' + err)
+    bot.sendMessage(TG_BOT_CHATID, `Login error for ${gameKey}:\n` + err);
+  })
+  if (res.data['retcode'] !== 0) {
+    console.info('Account not logged in, please check cookie', JSON.stringify(res.data))
+    bot.sendMessage(TG_BOT_CHATID, `Account not logged in for ${gameKey}, please check cookie:\n` + JSON.stringify(res.data));
+  }
+  if ((res?.data?.message === 'OK') && res.data.data.list[0]) {
+    ROLE[gameKey] = res.data.data.list[0]
+    console.log(`[${gameKey}] Login successful <${ROLE[gameKey].nickname}(${ROLE[gameKey].game_uid})>: `, JSON.stringify(res.data))
+    bot.sendMessage(TG_BOT_CHATID, `[${gameKey}] Login successful <${ROLE[gameKey].nickname}(${ROLE[gameKey].game_uid})>`);
   } else {
-    console.error(`[${gameKey}] Get wallet error\n` + res)
+    ROLE[gameKey] = {
+      game_biz: '',
+      region: '',
+      game_uid: '',
+      nickname: '',
+      level: -1,
+      is_chosen: false,
+      region_name: '',
+      is_official: false
+    }
+    console.log(`[${gameKey}] Login failed <No character found>: `, JSON.stringify(res.data))
+    bot.sendMessage(TG_BOT_CHATID, `[${gameKey}] Login failed <No character found>:\n` + JSON.stringify(res.data));
   }
 }
 
-const getNotifications = async (gameKey, token) => {
-  const config = gameConfig[gameKey]
-  const res = await $axios.request({
-    method: 'GET',
-    headers: { ...commonHeaders, ...config.headers, "x-rpc-combo_token": token },
-    url: config.baseURL + '/gamer/api/listNotifications?status=NotificationStatusUnread&type=NotificationTypePopup&is_sort=true'
-  }).catch(err => { console.error(`[${gameKey}] Get notifications error\n` + err) })
-  if ((res?.data?.message === 'OK') && res.data.data.list) {
-    console.log(`[${gameKey}] Get notifications success!`,)
-    return res.data.data.list
-  } else {
-    console.error(`[${gameKey}] Get notifications error\n` + res)
-    return []
-  }
-}
+async function Sign_In(cookie, gameKey) {
+  const ACT_ID = { Genshin: 'e202311201442471', StarRail: 'e202304121516551' }
+  const REGION = { Genshin: 'cn_gf01', StarRail: 'prod_gf_cn' }
+  const SIGNGAME = { Genshin: 'hk4e', StarRail: 'hkrpg' }
 
-const ackNotifications = async (gameKey, token, id) => {
-  const config = gameConfig[gameKey]
+  const headers = await getHeaders(cookie, { ...SIGN_HEADERS, 'x-rpc-signgame': SIGNGAME[gameKey] })
+  const data = {
+    act_id: ACT_ID[gameKey],
+    region: REGION[gameKey],
+    uid: ROLE[gameKey].game_uid,
+    lang: 'zh-cn'
+  }
   const res = await $axios.request({
     method: 'POST',
-    headers: { ...commonHeaders, ...config.headers, "x-rpc-combo_token": token },
-    url: config.baseURL + '/gamer/api/ackNotification',
-    data: { id }
-  }).catch(err => { console.error(`[${gameKey}] ACK notifications error\n` + err) })
-  if (res?.data?.message === 'OK') {
-    console.log(`[${gameKey}] ACK notifications success!`,)
-  } else {
-    console.error(`[${gameKey}] ACK notifications error\n` + res)
+    headers,
+    data,
+    url: `https://${WEB_HOST}/event/luna/${SIGNGAME[gameKey]}/sign`
+  }).catch(err => {
+    console.error('Sign-in error\n' + err)
+    bot.sendMessage(TG_BOT_CHATID, `Sign-in error for ${gameKey} <${ROLE[gameKey].nickname}(${ROLE[gameKey].game_uid})>:\n` + err);
+  })
+    console.log(`<${ROLE[gameKey].nickname}(${ROLE[gameKey].game_uid})> Sign-in ${res?.data?.message === 'OK' ? 'successful' : 'failed'}: `, JSON.stringify(res.data))
+    bot.sendMessage(TG_BOT_CHATID, `<${ROLE[gameKey].nickname}(${ROLE[gameKey].game_uid})> Sign-in ${res?.data?.message === 'OK' ? 'successful' : 'failed'}:\n` + JSON.stringify(res.data));
   }
-}
 
-const doCloudSign = async (gameKey) => {
-  const CONF = await getTokenConfig()
-  const tokenList = CONF[gameKey]
-  if (tokenList.length) {
-    console.info(`[${gameKey}] Start signing in, total ${tokenList.length} users\n`)
-    for (const tokenIndex in tokenList) {
-      const token = tokenList[tokenIndex]
-      if (token) {
-        console.log(`[${gameKey}] User ${Number(tokenIndex) + 1} starts signing in...`)
-        await getWallet(gameKey, token)
-        const notificationsList  = await getNotifications(gameKey, token)
-        console.log(`[${gameKey}] Retrieved notifications:`, JSON.stringify(notificationsList))
-        if (notificationsList?.length) {
-          for (const notification of notificationsList) {
-            await randomSleep(1, 3)
-            await ackNotifications(gameKey, token, notification.id)
-          }
-          await getWallet(gameKey, token)
+const doMYSSign = async (gameKey) => {
+  const CONF = await getCookieConfig()
+  const cookieList = CONF[gameKey]
+  if (cookieList.length) {
+    console.info(`[${gameKey}] Start signing in, total ${cookieList.length} users\n`)
+    bot.sendMessage(TG_BOT_CHATID, `[${gameKey}] Start signing in, total ${cookieList.length} users`);
+    for (const cookIndex in cookieList) {
+      const cook = cookieList[cookIndex]
+      if (cook) {
+        console.log(`[${gameKey}] User ${Number(cookIndex) + 1} starts signing in...`)
+        await getRole(cook, gameKey)
+        if (ROLE[gameKey]?.game_uid) {
+          await Sign_In(cook, gameKey)
         }
         await randomSleep(3, 9)
       }
     }
+    console.info(`[${gameKey}] Sign-in completed\n`)
+    bot.sendMessage(TG_BOT_CHATID, `[${gameKey}] Sign-in completed`);
   }
-  console.info(`[${gameKey}] Sign-in completed\n`)
 }
 
-export { doCloudSign }
+export { doMYSSign }

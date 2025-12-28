@@ -8,6 +8,8 @@ on:
 jobs:
   build-and-run:
     runs-on: ubuntu-24.04
+    environment: 
+      name: MIHOYO
 
     steps:
     - name: Checkout repository
@@ -19,7 +21,7 @@ jobs:
         node-version: '18'
 
     - name: Install dependencies
-      run: npm install
+      run: npm install node-telegram-bot-api axios
 
     - name: Run main.js
       env:
