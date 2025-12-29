@@ -1,10 +1,11 @@
 import axios from 'axios';
 import md5 from 'md5';
 import { v4 } from 'uuid';
-import TelegramBot from 'node-telegram-bot-api';
-const TG_BOT_TOKEN = process.env.TG_BOT_TOKEN;
-const TG_BOT_CHATID = process.env.TG_BOT_CHATID;
-let bot = new TelegramBot(TG_BOT_TOKEN, { polling: true });
+
+const TG_BOT_CHATID = globalThis.TG_BOT_CHATID;
+const bot = globalThis.TG_BOT || {
+  sendMessage: (chatId, msg) => console.log(`[TG:${chatId}] ${msg}`)
+};
 
 let ROLE = {
   Genshin: {
