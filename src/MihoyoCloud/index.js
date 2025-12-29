@@ -1,8 +1,10 @@
 import axios from 'axios';
 const $axios = axios.create({})
 
-const TG_BOT_CHATID = globalThis.TG_BOT_CHATID;
-const bot = globalThis.TG_BOT;
+const chatId = globalThis.TG_BOT_CHATID;
+const bot = globalThis.TG_BOT || {
+  sendMessage: (chatId, msg) => console.log(`[TG:${chatId}] ${msg}`)
+};
 
 const randomSleep = (min, max) => {
   const delay = Math.floor(Math.random() * (max - min + 1)) + min
@@ -15,7 +17,7 @@ const getTokenConfig = async () => {
   const StarRailTokens = process.env.STARRAIL_TOKENS
   if (!genshinTokens && !StarRailTokens) {
     console.error("Missing required environment variables.");
-    bot.sendMessage(TG_BOT_CHATID, "Missing required environment variables: GENSHIN_TOKENS or STARRAIL_TOKENS.");
+    bot.sendMessage(chatId, "Missing required environment variables: GENSHIN_TOKENS or STARRAIL_TOKENS.");
     return { CloudYS: [], CloudSR: [] }
   }
   const genshinTokenArr = genshinTokens ? genshinTokens.split(',') : []
@@ -82,10 +84,10 @@ const getWallet = async (gameKey, token) => {
   }).catch(err => { console.error(`[${gameKey}] Get wallet error\n` + err) })
   if ((res?.data?.message === 'OK') && res.data.data.free_time) {
     console.log(`[${gameKey}] Get wallet success! free time: ${res.data.data.free_time.free_time}, total_time: ${res.data.data.total_time}`)
-    bot.sendMessage(TG_BOT_CHATID, `[${gameKey}] Get wallet success! free time: ${res.data.data.free_time.free_time}, total_time: ${res.data.data.total_time}`);
+    bot.sendMessage(chatId, `[${gameKey}] Get wallet success! free time: ${res.data.data.free_time.free_time}, total_time: ${res.data.data.total_time}`);
   } else {
     console.error(`[${gameKey}] Get wallet error\n` + res)
-    bot.sendMessage(TG_BOT_CHATID, `[${gameKey}] Get wallet error\n` + res);
+    bot.sendMessage(chatId, `[${gameKey}] Get wallet error\n` + res);
   }
 }
 
@@ -98,11 +100,11 @@ const getNotifications = async (gameKey, token) => {
   }).catch(err => { console.error(`[${gameKey}] Get notifications error\n` + err) })
   if ((res?.data?.message === 'OK') && res.data.data.list) {
     console.log(`[${gameKey}] Get notifications success!`,)
-    bot.sendMessage(TG_BOT_CHATID, `[${gameKey}] Get notifications success! Total ${res.data.data.list.length} unread notifications.`);
+    bot.sendMessage(chatId, `[${gameKey}] Get notifications success! Total ${res.data.data.list.length} unread notifications.`);
     return res.data.data.list
   } else {
     console.error(`[${gameKey}] Get notifications error\n` + res)
-    bot.sendMessage(TG_BOT_CHATID, `[${gameKey}] Get notifications error\n` + res);
+    bot.sendMessage(chatId, `[${gameKey}] Get notifications error\n` + res);
     return []
   }
 }
@@ -117,10 +119,10 @@ const ackNotifications = async (gameKey, token, id) => {
   }).catch(err => { console.error(`[${gameKey}] ACK notifications error\n` + err) })
   if (res?.data?.message === 'OK') {
     console.log(`[${gameKey}] ACK notifications success!`,)
-    bot.sendMessage(TG_BOT_CHATID, `[${gameKey}] ACK notifications success for id: ${id}`);
+    bot.sendMessage(chatId, `[${gameKey}] ACK notifications success for id: ${id}`);
   } else {
     console.error(`[${gameKey}] ACK notifications error\n` + res)
-    bot.sendMessage(TG_BOT_CHATID, `[${gameKey}] ACK notifications error for id: ${id}\n` + res);
+    bot.sendMessage(chatId, `[${gameKey}] ACK notifications error for id: ${id}\n` + res);
   }
 }
 
@@ -133,11 +135,11 @@ const doCloudSign = async (gameKey) => {
       const token = tokenList[tokenIndex]
       if (token) {
         console.log(`[${gameKey}] User ${Number(tokenIndex) + 1} starts signing in...`)
-        bot.sendMessage(TG_BOT_CHATID, `[${gameKey}] User ${Number(tokenIndex) + 1} starts signing in...`);
+        bot.sendMessage(chatId, `[${gameKey}] User ${Number(tokenIndex) + 1} starts signing in...`);
         await getWallet(gameKey, token)
         const notificationsList  = await getNotifications(gameKey, token)
         console.log(`[${gameKey}] Retrieved notifications:`, JSON.stringify(notificationsList))
-        bot.sendMessage(TG_BOT_CHATID, `[${gameKey}] Retrieved notifications:\n` + JSON.stringify(notificationsList));
+        bot.sendMessage(chatId, `[${gameKey}] Retrieved notifications:\n` + JSON.stringify(notificationsList));
         if (notificationsList?.length) {
           for (const notification of notificationsList) {
             await randomSleep(1, 3)
@@ -150,7 +152,7 @@ const doCloudSign = async (gameKey) => {
     }
   }
   console.info(`[${gameKey}] Sign-in completed\n`)
-  bot.sendMessage(TG_BOT_CHATID, `[${gameKey}] Sign-in completed`);
+  bot.sendMessage(chatId, `[${gameKey}] Sign-in completed`);
 }
 
 export { doCloudSign }
