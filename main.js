@@ -1,6 +1,6 @@
 import { doMYSSign } from './src/MYS/index.js'
 import { doCloudSign } from './src/MihoyoCloud/index.js'
-import TelegramBot from 'node-telegram-bot-api';
+import TelegramBot from 'node-telegram-bot';
 
 const TG_BOT_TOKEN = process.env.TG_BOT_TOKEN;
 const TG_BOT_CHATID = process.env.TG_BOT_CHATID;

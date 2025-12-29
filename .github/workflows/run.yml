@@ -21,13 +21,12 @@ jobs:
         node-version: '18'
 
     - name: Install dependencies
-      run: npm install node-telegram-bot-api axios
+      run: npm install node-telegram-bot axios
 
     - name: Run main.js
       env:
         MYS_COOKIES: ${{ secrets.MYS_COOKIES }}
         GENSHIN_TOKENS: ${{ secrets.GENSHIN_TOKENS }}
-        STARRAIL_TOKENS: ${{ secrets.STARRAIL_TOKENS }}
         TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN}}
         TG_BOT_CHATID: ${{ secrets.TG_BOT_CHATID}}
       run: node main.js
