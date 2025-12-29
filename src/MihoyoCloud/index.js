@@ -2,9 +2,7 @@ import axios from 'axios';
 const $axios = axios.create({})
 
 const TG_BOT_CHATID = globalThis.TG_BOT_CHATID;
-const bot = globalThis.TG_BOT || {
-  sendMessage: (chatId, msg) => console.log(`[TG:${chatId}] ${msg}`)
-};
+const bot = globalThis.TG_BOT;
 
 const randomSleep = (min, max) => {
   const delay = Math.floor(Math.random() * (max - min + 1)) + min

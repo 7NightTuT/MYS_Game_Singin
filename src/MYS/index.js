@@ -3,9 +3,7 @@ import md5 from 'md5';
 import { v4 } from 'uuid';
 
 const TG_BOT_CHATID = globalThis.TG_BOT_CHATID;
-const bot = globalThis.TG_BOT || {
-  sendMessage: (chatId, msg) => console.log(`[TG:${chatId}] ${msg}`)
-};
+const bot = globalThis.TG_BOT;
 
 let ROLE = {
   Genshin: {
